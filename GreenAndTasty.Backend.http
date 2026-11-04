@@ -1,0 +1,48 @@
+@baseUrl = http://localhost:5072
+@ownerToken = demo-owner-token
+@guestToken = demo-guest-token
+
+### Level 1: group snapshot, all sessions and totals
+GET {{baseUrl}}/guest/groups/group-123/sessions
+X-Demo-Token: {{ownerToken}}
+
+### Level 2: owner session id
+GET {{baseUrl}}/reservations/reservation-123/guest-session-id
+X-Demo-Token: {{ownerToken}}
+
+### Level 2: submit ONLY submitted sessions
+POST {{baseUrl}}/group-reservations/group-123/submit
+X-Demo-Token: {{ownerToken}}
+Content-Type: application/json
+
+{
+  "reservationId": "reservation-123"
+}
+
+### Level 3: delete the unsubmitted guest Marta and recalculate totals
+DELETE {{baseUrl}}/guest/groups/group-123/sessions/session3
+X-Demo-Token: {{ownerToken}}
+
+### Security: Guest gets 403 instead of the Owner response
+GET {{baseUrl}}/guest/groups/group-123/sessions
+X-Demo-Token: {{guestToken}}
+
+### Security: Missing token gets 401
+GET {{baseUrl}}/guest/groups/group-123/sessions
+
+### Missing reservation -> 404
+GET {{baseUrl}}/reservations/does-not-exist/guest-session-id
+X-Demo-Token: {{ownerToken}}
+
+### Wrong reservation in submit -> 400
+POST {{baseUrl}}/group-reservations/group-123/submit
+X-Demo-Token: {{ownerToken}}
+Content-Type: application/json
+
+{
+  "reservationId": "wrong-reservation"
+}
+
+### Owner session cannot be deleted -> 400
+DELETE {{baseUrl}}/guest/groups/group-123/sessions/owner-session-123
+X-Demo-Token: {{ownerToken}}

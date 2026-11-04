@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="uk">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Green & Tasty | Backend API Tester</title>
+  <style>
+    :root {color-scheme:light; font:16px system-ui,-apple-system,'Segoe UI',sans-serif;color:#1c2940;background:#f5f7fb}
+    *{box-sizing:border-box}main{max-width:1030px;margin:30px auto;padding:0 18px 48px}
+    header{background:#162744;color:white;padding:26px 30px;border-radius:14px}
+    header h1{font-size:28px;margin:0 0 6px}header p{color:#dbe5f4;margin:0}
+    article{background:white;margin-top:16px;border:1px solid #dce3ec;border-radius:12px;padding:20px}
+    h2{font-size:19px;margin:0 0 12px}.field{display:flex;flex-direction:column;gap:5px;min-width:150px;flex:1}
+    label{font-size:13px;font-weight:700;color:#425570}input{width:100%;padding:10px;border:1px solid #bfcada;border-radius:8px;font:inherit}
+    .fields{display:flex;flex-wrap:wrap;gap:12px;margin-bottom:14px}
+    button{cursor:pointer;background:#265ad5;color:white;border:0;border-radius:8px;padding:10px 15px;font-weight:700;font:inherit}
+    button:hover{background:#1d44a0}.note{color:#657389;font-size:14px}.pill{font-size:12px;border-radius:6px;padding:4px 7px;background:#e8f0ff;color:#2150bb;font-weight:700}
+    pre{white-space:pre-wrap;overflow-wrap:anywhere;word-break:break-word;background:#101d31;color:#e5f1ff;border-radius:9px;padding:18px;min-height:80px}
+    code{font:13px ui-monospace,SFMono-Regular,Consolas,monospace}a{color:#2255bc}#status{font-weight:700}small{color:#60728a}
+  </style>
+</head>
+<body>
+<main>
+  <header><h1>Green &amp; Tasty · Backend API</h1><p>Самодостатній локальний інтерфейс тестування без CDN, AWS та сторонніх JavaScript-бібліотек</p></header>
+  <article>
+    <h2>Налаштування</h2>
+    <div class="fields"><div class="field"><label for="token">Демонстраційний токен Owner</label><input id="token" value="demo-owner-token" autocomplete="off"></div></div>
+    <small>Для перевірки 403 введи demo-guest-token; для 401 очисть поле. Токени тільки для навчального застосунку.</small>
+  </article>
+  <article>
+    <h2><span class="pill">GET</span> Сесії та підсумки · Рівень 1</h2>
+    <div class="fields"><div class="field"><label for="group">Group reservation ID</label><input id="group" value="group-123"></div></div>
+    <button data-action="sessions">GET список сесій</button>
+  </article>
+  <article>
+    <h2><span class="pill">GET</span> Owner session ID · Рівень 2</h2>
+    <div class="fields"><div class="field"><label for="reservation">Reservation ID</label><input id="reservation" value="reservation-123"></div></div>
+    <button data-action="owner">GET Owner session</button>
+  </article>
+  <article>
+    <h2><span class="pill">POST</span> Підтвердження замовлення · Рівень 2</h2>
+    <p class="note">Змінює стан замовлення. Враховує тільки Submitted Guest сесії.</p>
+    <button data-action="submit">POST підтвердити</button>
+  </article>
+  <article>
+    <h2><span class="pill">DELETE</span> Видалення гостя · Рівень 3</h2>
+    <p class="note">Змінює дані в App_Data/state.json. Повторний DELETE поверне 404.</p>
+    <div class="fields"><div class="field"><label for="session">Guest session ID</label><input id="session" value="session3"></div></div>
+    <button data-action="delete">DELETE guest session</button>
+  </article>
+  <article><h2>Відповідь сервера</h2><p id="status" aria-live="polite">Натисни на кнопку запиту вище.</p><pre id="out" role="status">{}</pre><p class="note">Офіційний опис API: <a href="/openapi.json">openapi.json</a>. Перевірка сервера: <a href="/health">/health</a>.</p></article>
+</main>
+<script>
+(function () {
+  'use strict';
+  const byId = id => document.getElementById(id);
+  const field = id => encodeURIComponent(byId(id).value.trim());
+  async function callApi(action) {
+    const token = byId('token').value.trim();
+    const group = field('group');
+    const reservation = field('reservation');
+    const session = field('session');
+    const headers = token ? {'X-Demo-Token': token} : {};
+    let method = 'GET';
+    let url;
+    let body;
+    if (action === 'sessions') url = `/guest/groups/${group}/sessions`;
+    else if (action === 'owner') url = `/reservations/${reservation}/guest-session-id`;
+    else if (action === 'submit') {
+      method = 'POST';
+      url = `/group-reservations/${group}/submit`;
+      headers['Content-Type'] = 'application/json';
+      body = JSON.stringify({reservationId: byId('reservation').value.trim()});
+    } else if (action === 'delete') {
+      method = 'DELETE';
+      url = `/guest/groups/${group}/sessions/${session}`;
+    } else return;
+    byId('status').textContent = `${method} ${url} · виконується...`;
+    byId('out').textContent = '';
+    try {
+      const response = await fetch(url, {method,headers,body});
+      const raw = await response.text();
+      let parsed;
+      try { parsed = JSON.parse(raw); } catch { parsed = raw; }
+      byId('status').textContent = `${method} ${url} · HTTP ${response.status} ${response.statusText}`;
+      byId('out').textContent = typeof parsed === 'string' ? parsed : JSON.stringify(parsed,null,2);
+    } catch (err) {
+      byId('status').textContent = 'Помилка з’єднання';
+      byId('out').textContent = String(err);
+    }
+  }
+  document.querySelectorAll('[data-action]').forEach(button => button.addEventListener('click', () => callApi(button.dataset.action)));
+}());
+</script>
+</body>
+</html>

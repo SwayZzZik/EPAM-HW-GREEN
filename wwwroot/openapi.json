@@ -1,0 +1,209 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "Green & Tasty • EPAM Backend Homework",
+    "version": "1.0.0",
+    "description": "All three levels of the supplied homework-backend.md. Local demo authentication through X-Demo-Token. Owner: demo-owner-token; Guest: demo-guest-token. Demo only."
+  },
+  "servers": [
+    {
+      "url": "/"
+    }
+  ],
+  "components": {
+    "securitySchemes": {
+      "DemoToken": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "X-Demo-Token",
+        "description": "Use demo-owner-token (Owner) or demo-guest-token (non-Owner)."
+      }
+    }
+  },
+  "paths": {
+    "/guest/groups/{groupReservationId}/sessions": {
+      "get": {
+        "tags": [
+          "Level 1"
+        ],
+        "summary": "Owner: group participant sessions, dishes and totals",
+        "parameters": [
+          {
+            "name": "groupReservationId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "security": [
+          {
+            "DemoToken": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Participants and total"
+          },
+          "401": {
+            "description": "No valid demo token was provided"
+          },
+          "403": {
+            "description": "The authenticated user is not the reservation Owner"
+          },
+          "404": {
+            "description": "Requested resource does not exist"
+          }
+        }
+      }
+    },
+    "/reservations/{reservationId}/guest-session-id": {
+      "get": {
+        "tags": [
+          "Level 2"
+        ],
+        "summary": "Owner: get own guestSessionId for a reservation",
+        "parameters": [
+          {
+            "name": "reservationId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "security": [
+          {
+            "DemoToken": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The owner guestSessionId"
+          },
+          "401": {
+            "description": "No valid demo token was provided"
+          },
+          "403": {
+            "description": "The authenticated user is not the reservation Owner"
+          },
+          "404": {
+            "description": "Requested resource does not exist"
+          }
+        }
+      }
+    },
+    "/group-reservations/{groupReservationId}/submit": {
+      "post": {
+        "tags": [
+          "Level 2"
+        ],
+        "summary": "Owner: submit consolidated pre-order",
+        "description": "Collect only Submitted sessions; combine items by dishId; update order and group statuses.",
+        "parameters": [
+          {
+            "name": "groupReservationId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "security": [
+          {
+            "DemoToken": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "reservationId"
+                ],
+                "properties": {
+                  "reservationId": {
+                    "type": "string"
+                  }
+                }
+              },
+              "example": {
+                "reservationId": "reservation-123"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Consolidated dishId + quantity list"
+          },
+          "401": {
+            "description": "No valid demo token was provided"
+          },
+          "403": {
+            "description": "The authenticated user is not the reservation Owner"
+          },
+          "400": {
+            "description": "Invalid request or invalid group/session state"
+          },
+          "404": {
+            "description": "Requested resource does not exist"
+          }
+        }
+      }
+    },
+    "/guest/groups/{groupReservationId}/sessions/{guestSessionId}": {
+      "delete": {
+        "tags": [
+          "Level 3"
+        ],
+        "summary": "Owner: remove Guest session and return fresh group snapshot",
+        "parameters": [
+          {
+            "name": "groupReservationId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "guestSessionId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "security": [
+          {
+            "DemoToken": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Participants after deletion and updated total"
+          },
+          "401": {
+            "description": "No valid demo token was provided"
+          },
+          "403": {
+            "description": "The authenticated user is not the reservation Owner"
+          },
+          "400": {
+            "description": "Invalid request or invalid group/session state"
+          },
+          "404": {
+            "description": "Requested resource does not exist"
+          }
+        }
+      }
+    }
+  }
+}
