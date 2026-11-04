@@ -1,0 +1,52 @@
+
+name: Backend CI
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build-and-test:
+    name: build-and-test
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout project
+        uses: actions/checkout@v4
+
+      - name: Install .NET 8 SDK
+        uses: actions/setup-dotnet@v6
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Show .NET SDK
+        run: dotnet --info
+
+      - name: Restore dependencies
+        run: dotnet restore GreenAndTasty.Backend.sln
+
+      - name: Build backend
+        run: dotnet build GreenAndTasty.Backend.sln --configuration Release --no-restore
+
+      - name: Validate bundled catalog fixtures
+        run: python3 Tests/verify_fixtures.py
+
+      - name: Compile Python checks
+        run: python3 -m py_compile Tests/*.py
+
+      - name: Run API integration tests
+        run: python3 Tests/integration_test.py
+
+      - name: Verify publish output
+        run: dotnet publish GreenAndTasty.Backend.csproj --configuration Release --no-build --output ./artifacts/publish
+
+      - name: Check publish files
+        run: |
+          test -f artifacts/publish/GreenAndTasty.Backend.dll
+          test -f artifacts/publish/Data/dishes.json
+          test -f artifacts/publish/wwwroot/openapi.json
